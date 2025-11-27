@@ -70,7 +70,7 @@ use core::cell::{Ref, RefCell, RefMut, UnsafeCell};
 ///
 /// [`std::sync::Mutex`]: https://doc.rust-lang.org/std/sync/struct.Mutex.html
 /// [interior mutability]: https://doc.rust-lang.org/reference/interior-mutability.html
-#[derive(Debug)]
+#[cfg_attr(not(feature = "certified_subset"), derive(Debug))]
 pub struct Mutex<T> {
     // The `UnsafeCell` is not strictly necessary here: In theory, just using `T` should
     // be fine.
