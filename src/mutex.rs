@@ -100,6 +100,7 @@ impl<T> Mutex<T> {
     /// unwanted optimizations.
     #[inline]
     pub fn get_mut(&mut self) -> &mut T {
+        // SAFETY: &mut self guarantees unique access, so no aliasing can occur.
         unsafe { &mut *self.inner.get() }
     }
 
@@ -112,6 +113,8 @@ impl<T> Mutex<T> {
     /// Borrows the data for the duration of the critical section.
     #[inline]
     pub fn borrow<'cs>(&'cs self, _cs: CriticalSection<'cs>) -> &'cs T {
+        // SAFETY: The CriticalSection token proves we are in a critical section,
+        // preventing concurrent access. Only &T is returned, so no mutable aliasing.
         unsafe { &*self.inner.get() }
     }
 }
@@ -193,9 +196,10 @@ impl<T: Default> Mutex<RefCell<T>> {
     }
 }
 
-// NOTE A `Mutex` can be used as a channel so the protected data must be `Send`
+// SAFETY: A Mutex can be used as a channel so the protected data must be Send
 // to prevent sending non-Sendable stuff (e.g. access tokens) across different
-// threads.
+// threads. Sync is sound because all access to the inner data requires a
+// CriticalSection token, which guarantees mutual exclusion.
 unsafe impl<T> Sync for Mutex<T> where T: Send {}
 
 /// ``` compile_fail

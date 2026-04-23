@@ -200,7 +200,7 @@ pub unsafe fn acquire() -> RestoreState {
         fn _critical_section_1_0_acquire() -> RawRestoreState;
     }
 
-    #[allow(clippy::unit_arg)]
+    #[allow(clippy::unit_arg)] // When no restore-state-* feature is selected, RawRestoreState is (), which clippy flags as a unit argument
     RestoreState(_critical_section_1_0_acquire())
 }
 
@@ -217,7 +217,7 @@ pub unsafe fn release(restore_state: RestoreState) {
         fn _critical_section_1_0_release(restore_state: RawRestoreState);
     }
 
-    #[allow(clippy::unit_arg)]
+    #[allow(clippy::unit_arg)] // When no restore-state-* feature is selected, RawRestoreState is (), which clippy flags as a unit argument
     _critical_section_1_0_release(restore_state.0)
 }
 
@@ -240,13 +240,17 @@ pub fn with<R>(f: impl FnOnce(CriticalSection) -> R) -> R {
     impl Drop for Guard {
         #[inline(always)]
         fn drop(&mut self) {
+            // SAFETY: The Guard is only created after a successful acquire(),
+            // and self.state is the corresponding restore state from that acquire.
             unsafe { release(self.state) }
         }
     }
 
+    // SAFETY: acquire/release are properly paired via the Guard's Drop impl.
     let state = unsafe { acquire() };
     let _guard = Guard { state };
 
+    // SAFETY: We are inside a critical section (acquired above, released on drop).
     unsafe { f(CriticalSection::new()) }
 }
 
@@ -299,10 +303,12 @@ pub unsafe trait Impl {
 macro_rules! set_impl {
     ($t: ty) => {
         #[no_mangle]
+        // SAFETY: Delegates to the Impl trait; caller upholds the acquire/release contract.
         unsafe fn _critical_section_1_0_acquire() -> $crate::RawRestoreState {
             <$t as $crate::Impl>::acquire()
         }
         #[no_mangle]
+        // SAFETY: Delegates to the Impl trait; caller upholds the acquire/release contract.
         unsafe fn _critical_section_1_0_release(restore_state: $crate::RawRestoreState) {
             <$t as $crate::Impl>::release(restore_state)
         }
