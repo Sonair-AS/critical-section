@@ -214,11 +214,11 @@ An alternative solution would be to use a `CriticalSection` trait, and make all
 code that needs acquiring the critical section generic over it. This has a few problems:
 
 - It would require passing it as a generic param to a very big amount of code, which
-would be quite unergonomic.
+  would be quite unergonomic.
 - It's common to put `Mutex`es in `static` variables, and `static`s can't
-be generic.
+  be generic.
 - It would allow mixing different critical section implementations in the same program,
-which would be unsound.
+  which would be unsound.
 
 ## Minimum Supported Rust Version (MSRV)
 
